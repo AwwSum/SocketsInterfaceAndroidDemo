@@ -13,10 +13,14 @@ import android.app.Activity;
 import android.content.Intent;
 import android.view.Menu;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
+	private Client receiverClient = null;
+	private Client senderClient = null;
+	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,16 +42,41 @@ public class MainActivity extends Activity {
         return true;
     }
     
-    //make sure that the button works, and that text can be inserted into the text view.
-    public void testButton(View view) throws IOException{
+    //receives data from the server and writes it to a text view.
+    public void receiveButton(View view) throws IOException{
     	//Intent testButtonIntent = new Intent(this, MainActivity.class);
+    	
+    	if(this.receiverClient == null){
+    		this.receiverClient = new Client("184.72.220.54", 9119); //184.72.220.54 is the aws elastic IP of the server.
+    	}
+    	
     	TextView helloWorldTextView = (TextView)findViewById(R.id.textView1);
-    	//helloWorldTextView.setText("The button works!");
-    	Client myClient = new Client("184.72.220.54", 9119); //184.72.220.54 is the aws elastic IP of the server.
-    	InputStream inFromWeb = myClient.getInputStream();
+    	InputStream inFromWeb = receiverClient.getInputStream();
     	BufferedReader reader = new BufferedReader(new InputStreamReader(inFromWeb));
     	String message = reader.readLine(); //throws the IOException
     	helloWorldTextView.setText(message);
+    }
+    
+    //sends data to another client
+    public void sendButton(View view){
+		//get IP
+		EditText ipText = (EditText)findViewById(R.id.editText2);
+		String destAddr = ipText.getText().toString();
+		//get port
+		EditText portText = (EditText)findViewById(R.id.editText3);
+		int destPort = Integer.parseInt(portText.getText().toString());
+		//if this is the first time pressing the button, establish the connection.
+		if(this.senderClient == null){
+			this.senderClient = new Client("184.72.220.54", 9119, destAddr, destPort);
+		}
+    	//if sending to a different host, connect to them first.
+		else if(!this.senderClient.getInetAddress().getAddress().equals(destAddr) || this.senderClient.getPort() != destPort){
+			//184.72.220.54 is the aws elastic IP of the server.
+			this.senderClient = new Client("184.72.220.54", 9119, destAddr, destPort);
+		}
+    	EditText dataText = (EditText)findViewById(R.id.editText1);
+    	String data = dataText.getText().toString();
+    	senderClient.write(data);
     }
     
 }
